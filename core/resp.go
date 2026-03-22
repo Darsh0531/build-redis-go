@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 )
 
 // Decode is the main entry point. It takes raw bytes and returns a Go data type (interface{}).
@@ -126,4 +127,37 @@ func readArray(data []byte) (interface{}, int, error) {
 	}
 
 	return elems, pos, nil
+}
+func DecodeArrayString(data []byte) ([]string, error) {
+	value, err := Decode(data)
+	if err != nil {
+		return nil, err
+	}
+
+	// Type Assertion: tell Go this is an array of interfaces
+	ts := value.([]interface{})
+
+	// Create an empty array of strings with the exact same length
+	tokens := make([]string, len(ts))
+	for i := range tokens {
+		// Type Assertion: tell Go each individual element is a string
+		tokens[i] = ts[i].(string)
+	}
+
+	return tokens, nil
+}
+func Encode(value interface{}, isSimple bool) []byte {
+	// Type Switch: check the underlying type of 'value'
+	switch v := value.(type) {
+	case string:
+		if isSimple {
+			// e.g., "+PONG\r\n"
+			return []byte(fmt.Sprintf("+%s\r\n", v))
+		}
+		// e.g., "$5\r\nhello\r\n"
+		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(v), v))
+	}
+
+	// Return empty bytes if type is not matched
+	return []byte{}
 }
